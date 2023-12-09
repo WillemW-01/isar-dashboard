@@ -6,16 +6,23 @@ Engineer.
 ## Description
 
 _Spectrum_, the launch vehicle built by Isar Aerospace just performed a successful lift-off from
-the launch pad and is flying towards Earth orbit. This projecrt visualizes the
+the launch pad and is flying towards Earth orbit. This project visualizes the
 sensor system from _Spectrum_ using a web service such that the ground control crew
 can ensure the flight operates smoothly.
 
-## Technology
+## Environment
 
-\<insert here\>
+- Vite
+- ReactJS
+- RechartJS
+
+Install the necessary libraries:
+
+`$ cd app; npm install`
 
 ## Execution
 
-The app can be run using the following command:
+The app was only tested in dev mode and can be run using the following command (make sure to be in the `app` directory):
 
-`$ vite start`
+`$ npm run dev`
+``
