@@ -14,7 +14,7 @@ const GraphSquare = (props: any) => {
             type="monotone"
             dataKey="value"
             stroke="#095EDD"
-            animationDuration={150}
+            isAnimationActive={false}
           />
         </LineChart>
       </ResponsiveContainer>

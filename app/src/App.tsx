@@ -18,6 +18,7 @@ const App = () => {
   const [shouldTakeAction, setShouldTakeAction] = useState(false);
   const [lastUpdate, setLastUpdate] = useState("--:--:--");
   const [missionTime, setMissionTime] = useState("");
+  const [updateButtonDisabled, setUpdateButtonDisabled] = useState(false);
 
   const missionStart = new Date(2023, 11, 1);
   const apiUrl =
@@ -71,35 +72,59 @@ const App = () => {
     return `${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
   };
 
-  const fetchData = () => {
+  const getConsistentData = (data: { [key: string]: any }) => {
+    let keys = Object.keys(data);
+    let newData: { [key: string]: any } = {};
+    keys.forEach((key) => {
+      newData[key.toLowerCase()] = data[key];
+    });
+    return newData;
+  };
+
+  const fetchFromUrl = () => {
     fetch(apiUrl)
       .then((response) => response.json())
       .then((data) => {
-        // console.log(data);
         let timeStamp = getTimeStamp();
-        updateValues(timeStamp, data);
+        const newData = getConsistentData(data);
+        updateValues(timeStamp, newData);
       })
       .catch((error) => console.log(error));
   };
 
   const updateValues = (timeStamp: string, data: any) => {
     setLastUpdate(timeStamp);
-    setVelocity(velocity.concat(generateObj(timeStamp, data["velocity"])));
-    setAltitude(altitude.concat(generateObj(timeStamp, data["altitude"])));
-    setTemperature(
-      temperature.concat(generateObj(timeStamp, data["temperature"]))
+    console.log(data["velocity"]);
+    console.log(data);
+    console.log(velocity, altitude, temperature);
+    console.log(
+      velocity.concat(generateObj(timeStamp, data["velocity"])).slice(-15)
+    );
+
+    setVelocity((prevVelocity) =>
+      prevVelocity.concat(generateObj(timeStamp, data["velocity"])).slice(-15)
+    );
+    setAltitude((prevAltitude) =>
+      prevAltitude.concat(generateObj(timeStamp, data["altitude"])).slice(-15)
+    );
+    setTemperature((prevTemperature) =>
+      prevTemperature
+        .concat(generateObj(timeStamp, data["temperature"]))
+        .slice(-15)
     );
     setIsAscending(data["isAscending"]);
   };
 
   const openSocket = () => {
+    setUpdateButtonDisabled(true);
     const exampleSocket = new WebSocket(
       "wss://webfrontendassignment-isaraerospace.azurewebsites.net/api/SpectrumWS"
     );
     exampleSocket.onmessage = (event) => {
       let timeStamp = getTimeStamp();
-      console.log(event.data);
-      updateValues(timeStamp, event.data);
+      const newData = getConsistentData(JSON.parse(event.data));
+      console.log(newData);
+      updateValues(timeStamp, newData);
     };
   };
 
@@ -109,7 +134,7 @@ const App = () => {
         <div className="logoContainer">
           <img src={isarLogo} height="75px" />
           <div>
-            <b>SPECTRUM MAIDEN LAUNCH</b>
+            <b>SPECTRUM LAUNCH</b>
           </div>
         </div>
         <div className="timerContainer">
@@ -141,14 +166,15 @@ const App = () => {
           </div>
         </div>
         <div className="container2">
-          <GraphSquare
-            className="graphAltitude"
-            data={altitude}
-            label="Altitude"
-            value={getLastValue(altitude)}
-            unit="m"
-          />
-          <div>
+          <div className="graphAltitude">
+            <GraphSquare
+              data={altitude}
+              label="Altitude"
+              value={getLastValue(altitude)}
+              unit="m"
+            />
+          </div>
+          <div className="buttonContainer">
             <div>
               <div>The spacecraft is {ascendingText[Number(isAscending)]}</div>
               <img
@@ -159,7 +185,12 @@ const App = () => {
               />
             </div>
             <div>
-              <button onMouseDown={fetchData}>Update</button>
+              <button
+                onMouseDown={fetchFromUrl}
+                disabled={updateButtonDisabled}
+              >
+                Update
+              </button>
               <button onMouseDown={openSocket}>Stream</button>
             </div>
           </div>

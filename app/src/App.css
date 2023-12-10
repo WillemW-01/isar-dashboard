@@ -57,3 +57,11 @@
 .container2 {
   display: flex;
 }
+
+.graphAltitude {
+  flex: 5;
+}
+
+.buttonContainer {
+  flex: 2;
+}
