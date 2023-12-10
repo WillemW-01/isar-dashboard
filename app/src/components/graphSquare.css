@@ -1,0 +1,10 @@
+.graphSquare {
+  display: block;
+  margin: 15px;
+  overflow: auto;
+}
+
+.graphLabel {
+  background-color: rgba(245, 245, 220, 0.384);
+  text-align: right;
+}

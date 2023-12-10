@@ -25,4 +25,11 @@ Install the necessary libraries:
 The app was only tested in dev mode and can be run using the following command (make sure to be in the `app` directory):
 
 `$ npm run dev`
-``
+
+## Assignment A Details
+
+## Assignment B Details
+
+## Assignment C Details
+
+- WebSocket response object has inconsistent capitalisation, which made it hard to make the code compact.
