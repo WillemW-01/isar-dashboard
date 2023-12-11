@@ -73,8 +73,22 @@
   margin-bottom: 5px;
 }
 
+.buttonContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .buttonContainer button {
   margin: 5px;
+}
+
+.buttonContainer .downloadButton {
+  padding: 6px 10px;
+}
+
+.buttonContainer img {
+  height: 25px;
 }
 
 .summaryInfo {
@@ -95,7 +109,7 @@ table {
 .modalActionRequired {
   width: 500px;
   height: 200px;
-  background-color: rgba(0, 80, 253, 0.9);
+  background-color: rgb(0, 80, 253);
   position: fixed;
   left: calc(50% - 250px);
   top: calc(50% - 100px);

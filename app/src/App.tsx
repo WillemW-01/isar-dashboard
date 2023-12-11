@@ -6,17 +6,13 @@ import GraphSquare from "./components/GraphSquare";
 import spacecraft from "./assets/sattelite.png";
 import isarLogo from "./assets/logo.png";
 import spinner from "./assets/logo_3.png";
+import downloadIcon from "./assets/download.png";
 
 const App = () => {
   interface DataPoint {
     name: string;
     value: any;
   }
-
-  // TODO: do correct HTTP upgrading
-  // TODO: Y axis of graphs must save min and max
-  // TODO: make labels of X axis of graphs smaller
-  // TODO:
 
   const [velocity, setVelocity] = useState<DataPoint[]>([]);
   const [altitude, setAltitude] = useState<DataPoint[]>([]);
@@ -29,17 +25,33 @@ const App = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [spinnerActive, setSpinnerActive] = useState(false);
   const [socketOpen, setSocketOpen] = useState(false);
+  const [actionText, setActionText] = useState("Correct steering");
   const socket = useRef<WebSocket>();
 
-  const missionStart = new Date(2023, 11, 10);
-  const apiUrl =
-    "https://webfrontendassignment-isaraerospace.azurewebsites.net/api/SpectrumStatus";
+  const missionStart = new Date(
+    2023,
+    new Date().getMonth(),
+    new Date().getDate() - 1
+  );
   const ascendingText = ["not ascending", "ascending"];
   const rotationValues = [45, 15];
   const spinnerStyle = [{ display: "none" }, { display: "block" }];
-  const lastNumPoints = 40;
+  const lastNumPoints = 30;
+  const actionTextList = [
+    "Correct steering",
+    "Update sensor position",
+    "Restablish communication",
+    "Check unexpected altitude",
+    "Decode broken message bytes",
+  ];
+  const apiUrl =
+    "https://webfrontendassignment-isaraerospace.azurewebsites.net/api/SpectrumStatus";
+  const socketUrl =
+    "wss://webfrontendassignment-isaraerospace.azurewebsites.net/api/SpectrumWS";
+  const actionUrl =
+    "https://webfrontendassignment-isaraerospace.azurewebsites.net/api/ActOnSpectrum";
 
-  const getLastValue = (obj: DataPoint[]) => {
+  const getLastValue = (obj: DataPoint[]): string => {
     if (obj.length == 0) {
       return "";
     } else {
@@ -47,7 +59,7 @@ const App = () => {
     }
   };
 
-  const getMaxValue = (obj: DataPoint[]) => {
+  const getMaxValue = (obj: DataPoint[]): string => {
     if (obj.length == 0) {
       return "";
     } else {
@@ -55,12 +67,16 @@ const App = () => {
     }
   };
 
-  const getMinValue = (obj: DataPoint[]) => {
+  const getMinValue = (obj: DataPoint[]): string => {
     if (obj.length == 0) {
       return "";
     } else {
       return Math.min(...obj.map((entry) => entry.value)).toFixed(2);
     }
+  };
+
+  const getRandomText = (): string => {
+    return actionTextList[Math.floor(Math.random() * actionTextList.length)];
   };
 
   useEffect(() => {
@@ -118,8 +134,6 @@ const App = () => {
   };
 
   const updateValues = (timeStamp: string, data: any) => {
-    console.log(data);
-
     setLastUpdate(timeStamp);
     setVelocity((prevVelocity) =>
       prevVelocity.concat(generateObj(timeStamp, data["velocity"]))
@@ -133,35 +147,36 @@ const App = () => {
     setIsAscending(data["isascending"]);
     setStatusText(data["statusmessage"]);
 
-    if (data["isactionrequired"]) {
+    if (data["isactionrequired"] && socketOpen) {
       setIsModalOpen(true);
     }
   };
 
   useEffect(() => {
-    socket.current = new WebSocket(
-      "wss://webfrontendassignment-isaraerospace.azurewebsites.net/api/SpectrumWS"
-    );
+    socket.current = new WebSocket(socketUrl);
     socket.current.onopen = () => console.log("Socket is opened");
-    socket.current.onclose = () => console.log("Socket is opened");
+    socket.current.onclose = () => {
+      console.log("Socket was closed");
+      setTimeout(() => (socket.current = new WebSocket(socketUrl)), 1000);
+    };
+    socket.current.onerror = () => {
+      console.log("Socket had an error");
+      setTimeout(() => (socket.current = new WebSocket(socketUrl)), 1000);
+    };
 
     const tempSocket = socket.current;
     return () => {
+      console.log("Socket is closing");
+
       tempSocket.close();
     };
   }, []);
 
   useEffect(() => {
     if (!socket.current) return;
-    if (!updateButtonDisabled && socketOpen) {
-      setUpdateButtonDisabled(true);
-    }
-    if (updateButtonDisabled && !socketOpen) {
-      setUpdateButtonDisabled(false);
-    }
     socket.current.onmessage = (event) => {
       if (!socketOpen) return;
-      console.log(`updateButton: ${updateButtonDisabled}`);
+      console.log(event.data);
 
       const newData = getConsistentData(JSON.parse(event.data));
       const timeStamp = getTimeStamp();
@@ -170,16 +185,29 @@ const App = () => {
   }, [socketOpen]);
 
   const takeAction = () => {
-    fetch(
-      "https://webfrontendassignment-isaraerospace.azurewebsites.net/api/ActOnSpectrum"
-    ).then(() => {
+    fetch(actionUrl).then(() => {
       setSpinnerActive(true);
       setTimeout(() => {
         console.log(`Action taken!`);
         setSpinnerActive(false);
         setIsModalOpen(false);
+        setActionText(() => getRandomText());
       }, 1500);
     });
+  };
+
+  const downloadData = () => {
+    // source: https://stackoverflow.com/questions/14964035/how-to-export-javascript-array-info-to-csv-on-client-side
+    let csvContent = "timeStamp,altitude,velocity,temperature\n";
+    for (let i = 0; i < altitude.length; i++) {
+      csvContent += `${altitude[i].name},${altitude[i].value},${velocity[i].value},${temperature[i].value}\n`;
+    }
+    let blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    let url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "data.csv");
+    link.click();
   };
 
   return (
@@ -205,7 +233,7 @@ const App = () => {
           <div className="modalButtonContainer">
             <div className="modalText">The spacecraft requires action</div>
             <button onMouseDown={takeAction} disabled={spinnerActive}>
-              Take Action
+              {actionText}
             </button>
           </div>
           <img
@@ -227,7 +255,7 @@ const App = () => {
           </div>
           <div className="graphTemperature graphBox">
             <GraphSquare
-              data={temperature.slice(-30)}
+              data={temperature.slice(-20)}
               label="Temperature"
               value={getLastValue(temperature)}
               min={Number(getMinValue(temperature))}
@@ -252,16 +280,38 @@ const App = () => {
             <div className="statusText">{statusText}</div>
             <div className="buttonContainer">
               <button
-                onMouseDown={fetchFromUrl}
                 disabled={updateButtonDisabled}
+                onMouseDown={fetchFromUrl}
               >
                 Update
               </button>
               {updateButtonDisabled ? (
-                <button onMouseDown={() => setSocketOpen(false)}>Stop</button>
+                <button
+                  onMouseDown={() => {
+                    setSocketOpen(false);
+                    setUpdateButtonDisabled(false);
+                  }}
+                >
+                  Stop
+                </button>
               ) : (
-                <button onMouseDown={() => setSocketOpen(true)}>Stream</button>
+                <button
+                  onMouseDown={() => {
+                    setSocketOpen(true);
+                    setUpdateButtonDisabled(true);
+                  }}
+                >
+                  Stream
+                </button>
               )}
+              <button
+                className="downloadButton"
+                onMouseDown={(event) => {
+                  if (event.buttons == 1) downloadData();
+                }}
+              >
+                <img src={downloadIcon} />
+              </button>
             </div>
             <div className="summaryInfo">
               <table>

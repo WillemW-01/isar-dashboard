@@ -1,7 +1,6 @@
 .graphSquare {
   display: block;
   margin: 15px;
-  overflow: auto;
 }
 
 .graphLabel {

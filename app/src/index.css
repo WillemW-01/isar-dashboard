@@ -37,9 +37,7 @@ button {
   font-weight: 500;
   font-family: inherit;
   background-color: #042453;
-  /* add this line */
   color: white;
-  /* set this to the same color as the background-color */
   cursor: pointer;
   transition: border-color 0.25s;
 }
@@ -48,6 +46,11 @@ button:hover {
   border-color: #095EDD;
 }
 
+button:disabled {
+  border-color: #202b3b;
+  cursor: default;
+  background-color: #202b3b;
+}
 
 button:focus,
 button:focus-visible {
