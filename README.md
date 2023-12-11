@@ -74,6 +74,6 @@ I also thought of highlighting certain parts of the UI a certain colour to indic
 
 ## Final notes
 
-I was on a hiking trip and could only start on this on Saturday 9/12 (having until Tuesday 12/12). Therefore, and as mentioned above, I would've wanted to add more things if I had a bit more time.
+I was on a hiking trip and could only start on this on Saturday 9/12 (having until Monday 11/12). Therefore, and as mentioned above, I would've wanted to add more things if I had a bit more time.
 
 I hope you enjoyed the solution here, and I look forward to hear back from you.
