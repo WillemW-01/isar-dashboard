@@ -44,36 +44,52 @@
   /* height: auto; */
 }
 
-.graphTemperature {
-  flex: 2;
+.graphBox {
   background-color: white;
   margin: 10px;
   border-radius: 3px;
   box-shadow: 2px 2px 2px 1px rgba(0, 0, 0, 0.452);
+}
+
+.graphTemperature {
+  flex: 2;
 }
 
 .graphAltitude {
   flex: 5;
-  background-color: white;
-  margin: 10px;
-  border-radius: 3px;
-  box-shadow: 2px 2px 2px 1px rgba(0, 0, 0, 0.452);
 }
 
 .graphVelocity {
   flex: 2;
-  background-color: white;
-  margin: 10px;
-  border-radius: 3px;
-  box-shadow: 2px 2px 2px 1px rgba(0, 0, 0, 0.452);
 }
 
-.buttonContainer {
+.infoContainer {
   flex: 1;
-  background-color: white;
-  margin: 10px;
-  border-radius: 3px;
-  box-shadow: 2px 2px 2px 1px rgba(0, 0, 0, 0.452);
+  padding: 15px;
+}
+
+.statusText {
+  font-size: 15pt;
+  margin-bottom: 5px;
+}
+
+.buttonContainer button {
+  margin: 5px;
+}
+
+.summaryInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.imageContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+table {
+  text-align: left;
 }
 
 .modalActionRequired {
@@ -100,17 +116,20 @@
 
 .spinner {
   height: 75px;
-  animation: rotate 0.2s linear infinite;
+  animation: spin 0.2s linear infinite;
   display: none;
   margin-left: 20px;
   opacity: 80%;
 }
 
 .spaceImg {
-  transition: transform 1s;
+  transition: transform 0.5s;
+  height: 75px;
+  width: 75px;
+  margin: 10px 0px;
 }
 
-@keyframes rotate {
+@keyframes spin {
   from {
     transform: rotate(0deg);
   }

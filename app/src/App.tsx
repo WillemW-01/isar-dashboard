@@ -3,7 +3,7 @@ import Modal from "react-modal";
 import "./App.css";
 import GraphSquare from "./components/GraphSquare";
 
-import spacecraft from "./assets/spacecraft.png";
+import spacecraft from "./assets/sattelite.png";
 import isarLogo from "./assets/logo.png";
 import spinner from "./assets/logo_3.png";
 
@@ -14,12 +14,15 @@ const App = () => {
   }
 
   // TODO: do correct HTTP upgrading
+  // TODO: Y axis of graphs must save min and max
+  // TODO: make labels of X axis of graphs smaller
+  // TODO:
 
   const [velocity, setVelocity] = useState<DataPoint[]>([]);
   const [altitude, setAltitude] = useState<DataPoint[]>([]);
   const [temperature, setTemperature] = useState<DataPoint[]>([]);
   const [isAscending, setIsAscending] = useState(false);
-  const [statusText, setStatusText] = useState("");
+  const [statusText, setStatusText] = useState("Nothing to report.");
   const [lastUpdate, setLastUpdate] = useState("--:--:--");
   const [missionTime, setMissionTime] = useState("");
   const [updateButtonDisabled, setUpdateButtonDisabled] = useState(false);
@@ -28,12 +31,13 @@ const App = () => {
   const [socketOpen, setSocketOpen] = useState(false);
   const socket = useRef<WebSocket>();
 
-  const missionStart = new Date(2023, 11, 1);
+  const missionStart = new Date(2023, 11, 10);
   const apiUrl =
     "https://webfrontendassignment-isaraerospace.azurewebsites.net/api/SpectrumStatus";
   const ascendingText = ["not ascending", "ascending"];
   const rotationValues = [45, 15];
   const spinnerStyle = [{ display: "none" }, { display: "block" }];
+  const lastNumPoints = 40;
 
   const getLastValue = (obj: DataPoint[]) => {
     if (obj.length == 0) {
@@ -43,22 +47,35 @@ const App = () => {
     }
   };
 
+  const getMaxValue = (obj: DataPoint[]) => {
+    if (obj.length == 0) {
+      return "";
+    } else {
+      return Math.max(...obj.map((entry) => entry.value)).toFixed(2);
+    }
+  };
+
+  const getMinValue = (obj: DataPoint[]) => {
+    if (obj.length == 0) {
+      return "";
+    } else {
+      return Math.min(...obj.map((entry) => entry.value)).toFixed(2);
+    }
+  };
+
   useEffect(() => {
     const timer = setInterval(() => {
       let now = new Date();
+      const elapsedHours =
+        now.getHours() -
+        missionStart.getHours() +
+        (now.getDate() - missionStart.getDate()) * 24;
+      const elapsedMinutes = now.getMinutes() - missionStart.getMinutes();
+      const elapsedSeconds = now.getSeconds() - missionStart.getSeconds();
       let elapsed = {
-        hours: String(now.getHours() - missionStart.getHours()).padStart(
-          2,
-          "0"
-        ),
-        minutes: String(now.getMinutes() - missionStart.getMinutes()).padStart(
-          2,
-          "0"
-        ),
-        seconds: String(now.getSeconds() - missionStart.getSeconds()).padStart(
-          2,
-          "0"
-        ),
+        hours: String(elapsedHours).padStart(2, "0"),
+        minutes: String(elapsedMinutes).padStart(2, "0"),
+        seconds: String(elapsedSeconds).padStart(2, "0"),
       };
       setMissionTime(
         `${elapsed["hours"]}:${elapsed["minutes"]}:${elapsed["seconds"]}`
@@ -71,13 +88,13 @@ const App = () => {
     };
   }, [missionTime]);
 
-  const generateObj = (timeStamp: string, value: any) => {
-    return { name: timeStamp, value: value };
+  const generateObj = (timeStamp: string, value: Number) => {
+    return { name: timeStamp, value: Number(value.toFixed(2)) };
   };
 
   const getTimeStamp = () => {
     let now = new Date();
-    return `${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
+    return `${now.toLocaleTimeString()}`;
   };
 
   const getConsistentData = (data: { [key: string]: any }) => {
@@ -105,20 +122,18 @@ const App = () => {
 
     setLastUpdate(timeStamp);
     setVelocity((prevVelocity) =>
-      prevVelocity.concat(generateObj(timeStamp, data["velocity"])).slice(-15)
+      prevVelocity.concat(generateObj(timeStamp, data["velocity"]))
     );
     setAltitude((prevAltitude) =>
-      prevAltitude.concat(generateObj(timeStamp, data["altitude"])).slice(-15)
+      prevAltitude.concat(generateObj(timeStamp, data["altitude"]))
     );
     setTemperature((prevTemperature) =>
-      prevTemperature
-        .concat(generateObj(timeStamp, data["temperature"]))
-        .slice(-15)
+      prevTemperature.concat(generateObj(timeStamp, data["temperature"]))
     );
     setIsAscending(data["isascending"]);
     setStatusText(data["statusmessage"]);
 
-    if (data["isactionrequired"] && updateButtonDisabled) {
+    if (data["isactionrequired"]) {
       setIsModalOpen(true);
     }
   };
@@ -138,8 +153,6 @@ const App = () => {
 
   useEffect(() => {
     if (!socket.current) return;
-    console.log(socket.current);
-    console.log(`updateButton: ${updateButtonDisabled}`);
     if (!updateButtonDisabled && socketOpen) {
       setUpdateButtonDisabled(true);
     }
@@ -165,7 +178,7 @@ const App = () => {
         console.log(`Action taken!`);
         setSpinnerActive(false);
         setIsModalOpen(false);
-      }, 2000);
+      }, 1500);
     });
   };
 
@@ -202,49 +215,42 @@ const App = () => {
           />
         </Modal>
         <div className="graphContainer">
-          <div className="graphAltitude">
+          <div className="graphAltitude graphBox">
             <GraphSquare
-              data={altitude}
+              data={altitude.slice(-lastNumPoints)}
               label="Altitude"
               value={getLastValue(altitude)}
+              min={getMinValue(altitude)}
+              max={getMaxValue(altitude)}
               unit="m"
             />
           </div>
-          <div className="graphTemperature">
+          <div className="graphTemperature graphBox">
             <GraphSquare
-              data={temperature}
+              data={temperature.slice(-30)}
               label="Temperature"
               value={getLastValue(temperature)}
+              min={Number(getMinValue(temperature))}
+              max={Number(getMaxValue(temperature))}
               unit="C"
             />
           </div>
         </div>
         <div className="graphContainer">
-          <div className="graphVelocity">
+          <div className="graphVelocity graphBox">
             <GraphSquare
-              data={velocity}
+              data={velocity.slice(-lastNumPoints)}
               label="Velocity"
               value={getLastValue(velocity)}
+              min={getMinValue(velocity)}
+              max={getMaxValue(velocity)}
               unit="m/s"
             />
           </div>
 
-          <div className="buttonContainer">
-            <div>
-              <div>{statusText}</div>
-              <div>The spacecraft is {ascendingText[Number(isAscending)]}</div>
-              <img
-                className="spaceImg"
-                src={spacecraft}
-                height="150"
-                style={{
-                  transform: `rotate(${
-                    rotationValues[Number(isAscending)]
-                  }deg)`,
-                }}
-              />
-            </div>
-            <div>
+          <div className="infoContainer graphBox">
+            <div className="statusText">{statusText}</div>
+            <div className="buttonContainer">
               <button
                 onMouseDown={fetchFromUrl}
                 disabled={updateButtonDisabled}
@@ -256,6 +262,60 @@ const App = () => {
               ) : (
                 <button onMouseDown={() => setSocketOpen(true)}>Stream</button>
               )}
+            </div>
+            <div className="summaryInfo">
+              <table>
+                <tr>
+                  <td></td>
+                  <td>
+                    <b>Current</b>
+                  </td>
+                  <td>
+                    <b>Min</b>
+                  </td>
+                  <td>
+                    <b>Max</b>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <b>Altitude</b>
+                  </td>
+                  <td>{altitude.length != 0 ? getLastValue(altitude) : "-"}</td>
+                  <td>{getMaxValue(altitude)}</td>
+                  <td>{getMinValue(altitude)}</td>
+                </tr>
+                <tr>
+                  <td>
+                    <b>Velocity</b>
+                  </td>
+                  <td>{velocity.length != 0 ? getLastValue(velocity) : "-"}</td>
+                  <td>{getMaxValue(velocity)}</td>
+                  <td>{getMinValue(velocity)}</td>
+                </tr>
+                <tr>
+                  <td>
+                    <b>Temperature</b>
+                  </td>
+                  <td>
+                    {temperature.length != 0 ? getLastValue(temperature) : "-"}
+                  </td>
+                  <td>{getMaxValue(temperature)}</td>
+                  <td>{getMinValue(temperature)}</td>
+                </tr>
+              </table>
+              <div className="imageContainer">
+                <b>Ascending status:</b> {ascendingText[Number(isAscending)]}
+                <img
+                  className="spaceImg"
+                  src={spacecraft}
+                  style={{
+                    transform: `rotate(${
+                      rotationValues[Number(isAscending)]
+                    }deg)`,
+                  }}
+                />
+              </div>
             </div>
           </div>
         </div>
