@@ -7,7 +7,7 @@
 
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
-  background-color: #095EDD;
+  background-color: #042453;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -49,7 +49,3 @@ button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
-
-/* #spaceImg {
-  transform: rotate(45deg);
-} */

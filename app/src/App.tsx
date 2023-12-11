@@ -1,33 +1,39 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import Modal from "react-modal";
 import "./App.css";
 import GraphSquare from "./components/GraphSquare";
 
 import spacecraft from "./assets/spacecraft.png";
 import isarLogo from "./assets/logo.png";
+import spinner from "./assets/logo_3.png";
+
 const App = () => {
   interface DataPoint {
     name: string;
     value: any;
   }
 
-  const [count, setCount] = useState(0);
+  // TODO: do correct HTTP upgrading
+
   const [velocity, setVelocity] = useState<DataPoint[]>([]);
   const [altitude, setAltitude] = useState<DataPoint[]>([]);
   const [temperature, setTemperature] = useState<DataPoint[]>([]);
   const [isAscending, setIsAscending] = useState(false);
-  const [shouldTakeAction, setShouldTakeAction] = useState(false);
+  const [statusText, setStatusText] = useState("");
   const [lastUpdate, setLastUpdate] = useState("--:--:--");
   const [missionTime, setMissionTime] = useState("");
   const [updateButtonDisabled, setUpdateButtonDisabled] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [spinnerActive, setSpinnerActive] = useState(false);
+  const [socketOpen, setSocketOpen] = useState(false);
+  const socket = useRef<WebSocket>();
 
   const missionStart = new Date(2023, 11, 1);
   const apiUrl =
     "https://webfrontendassignment-isaraerospace.azurewebsites.net/api/SpectrumStatus";
   const ascendingText = ["not ascending", "ascending"];
-  const rotationValues = [45, 0];
-  const imgStyle = {
-    transform: `rotate(${rotationValues[Number(isAscending)]}deg)`,
-  };
+  const rotationValues = [45, 15];
+  const spinnerStyle = [{ display: "none" }, { display: "block" }];
 
   const getLastValue = (obj: DataPoint[]) => {
     if (obj.length == 0) {
@@ -38,25 +44,27 @@ const App = () => {
   };
 
   useEffect(() => {
-    let now = new Date();
-    let elapsed = {
-      hours: String(now.getHours() - missionStart.getHours()).padStart(2, "0"),
-      minutes: String(now.getMinutes() - missionStart.getMinutes()).padStart(
-        2,
-        "0"
-      ),
-      seconds: String(now.getSeconds() - missionStart.getSeconds()).padStart(
-        2,
-        "0"
-      ),
-    };
-    const timer = setInterval(
-      () =>
-        setMissionTime(
-          `${elapsed["hours"]}:${elapsed["minutes"]}:${elapsed["seconds"]}`
+    const timer = setInterval(() => {
+      let now = new Date();
+      let elapsed = {
+        hours: String(now.getHours() - missionStart.getHours()).padStart(
+          2,
+          "0"
         ),
-      1100
-    );
+        minutes: String(now.getMinutes() - missionStart.getMinutes()).padStart(
+          2,
+          "0"
+        ),
+        seconds: String(now.getSeconds() - missionStart.getSeconds()).padStart(
+          2,
+          "0"
+        ),
+      };
+      setMissionTime(
+        `${elapsed["hours"]}:${elapsed["minutes"]}:${elapsed["seconds"]}`
+      ),
+        1000;
+    });
 
     return () => {
       clearInterval(timer);
@@ -93,14 +101,9 @@ const App = () => {
   };
 
   const updateValues = (timeStamp: string, data: any) => {
-    setLastUpdate(timeStamp);
-    console.log(data["velocity"]);
     console.log(data);
-    console.log(velocity, altitude, temperature);
-    console.log(
-      velocity.concat(generateObj(timeStamp, data["velocity"])).slice(-15)
-    );
 
+    setLastUpdate(timeStamp);
     setVelocity((prevVelocity) =>
       prevVelocity.concat(generateObj(timeStamp, data["velocity"])).slice(-15)
     );
@@ -112,20 +115,58 @@ const App = () => {
         .concat(generateObj(timeStamp, data["temperature"]))
         .slice(-15)
     );
-    setIsAscending(data["isAscending"]);
+    setIsAscending(data["isascending"]);
+    setStatusText(data["statusmessage"]);
+
+    if (data["isactionrequired"] && updateButtonDisabled) {
+      setIsModalOpen(true);
+    }
   };
 
-  const openSocket = () => {
-    setUpdateButtonDisabled(true);
-    const exampleSocket = new WebSocket(
+  useEffect(() => {
+    socket.current = new WebSocket(
       "wss://webfrontendassignment-isaraerospace.azurewebsites.net/api/SpectrumWS"
     );
-    exampleSocket.onmessage = (event) => {
-      let timeStamp = getTimeStamp();
+    socket.current.onopen = () => console.log("Socket is opened");
+    socket.current.onclose = () => console.log("Socket is opened");
+
+    const tempSocket = socket.current;
+    return () => {
+      tempSocket.close();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!socket.current) return;
+    console.log(socket.current);
+    console.log(`updateButton: ${updateButtonDisabled}`);
+    if (!updateButtonDisabled && socketOpen) {
+      setUpdateButtonDisabled(true);
+    }
+    if (updateButtonDisabled && !socketOpen) {
+      setUpdateButtonDisabled(false);
+    }
+    socket.current.onmessage = (event) => {
+      if (!socketOpen) return;
+      console.log(`updateButton: ${updateButtonDisabled}`);
+
       const newData = getConsistentData(JSON.parse(event.data));
-      console.log(newData);
+      const timeStamp = getTimeStamp();
       updateValues(timeStamp, newData);
     };
+  }, [socketOpen]);
+
+  const takeAction = () => {
+    fetch(
+      "https://webfrontendassignment-isaraerospace.azurewebsites.net/api/ActOnSpectrum"
+    ).then(() => {
+      setSpinnerActive(true);
+      setTimeout(() => {
+        console.log(`Action taken!`);
+        setSpinnerActive(false);
+        setIsModalOpen(false);
+      }, 2000);
+    });
   };
 
   return (
@@ -147,13 +188,26 @@ const App = () => {
         </div>
       </div>
       <div className="dataContainer">
-        <div className="container1">
-          <div className="graphVelocity">
+        <Modal isOpen={isModalOpen} className="modalActionRequired">
+          <div className="modalButtonContainer">
+            <div className="modalText">The spacecraft requires action</div>
+            <button onMouseDown={takeAction} disabled={spinnerActive}>
+              Take Action
+            </button>
+          </div>
+          <img
+            className="spinner"
+            src={spinner}
+            style={spinnerStyle[Number(spinnerActive)]}
+          />
+        </Modal>
+        <div className="graphContainer">
+          <div className="graphAltitude">
             <GraphSquare
-              data={velocity}
-              label="Velocity"
-              value={getLastValue(velocity)}
-              unit="m/s"
+              data={altitude}
+              label="Altitude"
+              value={getLastValue(altitude)}
+              unit="m"
             />
           </div>
           <div className="graphTemperature">
@@ -165,23 +219,29 @@ const App = () => {
             />
           </div>
         </div>
-        <div className="container2">
-          <div className="graphAltitude">
+        <div className="graphContainer">
+          <div className="graphVelocity">
             <GraphSquare
-              data={altitude}
-              label="Altitude"
-              value={getLastValue(altitude)}
-              unit="m"
+              data={velocity}
+              label="Velocity"
+              value={getLastValue(velocity)}
+              unit="m/s"
             />
           </div>
+
           <div className="buttonContainer">
             <div>
+              <div>{statusText}</div>
               <div>The spacecraft is {ascendingText[Number(isAscending)]}</div>
               <img
-                id="spaceImg"
+                className="spaceImg"
                 src={spacecraft}
                 height="150"
-                style={imgStyle}
+                style={{
+                  transform: `rotate(${
+                    rotationValues[Number(isAscending)]
+                  }deg)`,
+                }}
               />
             </div>
             <div>
@@ -191,7 +251,11 @@ const App = () => {
               >
                 Update
               </button>
-              <button onMouseDown={openSocket}>Stream</button>
+              {updateButtonDisabled ? (
+                <button onMouseDown={() => setSocketOpen(false)}>Stop</button>
+              ) : (
+                <button onMouseDown={() => setSocketOpen(true)}>Stream</button>
+              )}
             </div>
           </div>
         </div>

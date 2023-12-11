@@ -1,6 +1,5 @@
 // import React from "react";
 import { LineChart, Line, ResponsiveContainer, XAxis, YAxis } from "recharts";
-import zoomPlugin from "chartjs-plugin-zoom";
 import "./graphSquare.css";
 
 const GraphSquare = (props: any) => {

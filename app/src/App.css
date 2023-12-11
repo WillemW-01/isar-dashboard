@@ -31,37 +31,91 @@
 }
 
 .dataContainer {
-  /* margin: auto; */
   display: flex;
   flex-direction: column;
   justify-content: center;
   padding: 15px;
-  background-color: rgb(255, 255, 255);
   margin-top: 50px;
   color: black;
 }
 
-.container1 {
+.graphContainer {
   display: flex;
   /* height: auto; */
 }
 
-.graphVelocity {
-  flex: 5;
-}
-
 .graphTemperature {
   flex: 2;
-}
-
-.container2 {
-  display: flex;
+  background-color: white;
+  margin: 10px;
+  border-radius: 3px;
+  box-shadow: 2px 2px 2px 1px rgba(0, 0, 0, 0.452);
 }
 
 .graphAltitude {
   flex: 5;
+  background-color: white;
+  margin: 10px;
+  border-radius: 3px;
+  box-shadow: 2px 2px 2px 1px rgba(0, 0, 0, 0.452);
+}
+
+.graphVelocity {
+  flex: 2;
+  background-color: white;
+  margin: 10px;
+  border-radius: 3px;
+  box-shadow: 2px 2px 2px 1px rgba(0, 0, 0, 0.452);
 }
 
 .buttonContainer {
-  flex: 2;
+  flex: 1;
+  background-color: white;
+  margin: 10px;
+  border-radius: 3px;
+  box-shadow: 2px 2px 2px 1px rgba(0, 0, 0, 0.452);
+}
+
+.modalActionRequired {
+  width: 500px;
+  height: 200px;
+  background-color: rgba(0, 80, 253, 0.9);
+  position: fixed;
+  left: calc(50% - 250px);
+  top: calc(50% - 100px);
+  padding: 15px;
+  border-radius: 6px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modalButtonContainer {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  font-size: 16pt;
+}
+
+
+.spinner {
+  height: 75px;
+  animation: rotate 0.2s linear infinite;
+  display: none;
+  margin-left: 20px;
+  opacity: 80%;
+}
+
+.spaceImg {
+  transition: transform 1s;
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
